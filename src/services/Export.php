@@ -79,7 +79,7 @@ class Export extends Component
     {
         $fieldSettings = $field->settings;
 
-        $blockTypes =$field->getEntryTypes();
+        $blockTypes = $field->getEntryTypes();
 
         $blockCount = 1;
         foreach ($blockTypes as $blockType) {

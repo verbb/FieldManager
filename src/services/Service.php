@@ -41,12 +41,12 @@ class Service extends Component
         // Because we're essentially editing a current field, we need to remove ID's for blocks and inner fields.
         // Not doing this will move all fields from one Matrix to another - instead of creating new ones.
         if ($field instanceof Matrix) {
-            $field->blockTypes = $this->processCloneMatrix($originField);
+            $field->entryTypes = $this->processCloneMatrix($originField);
         }
 
         if (Plugin::isPluginInstalledAndEnabled('super-table')) {
             if ($field instanceof SuperTableField) {
-                $field->blockTypes = $this->processCloneSuperTable($originField);
+                $field->entryTypes = $this->processCloneSuperTable($originField);
             }
         }
 
