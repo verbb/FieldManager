@@ -4,7 +4,7 @@
 
 ### Changed
 - Cloned Matrix fields now have their entry types cloned, but fields on the entry type are reused and not cloned.
-- Update English translations..
+- Update English translations.
 
 ### Fixed
 - Fix an error cloning Matrix fields.
