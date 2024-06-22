@@ -10,12 +10,16 @@ use craft\base\FieldInterface;
 use craft\db\Query;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Json;
+use craft\helpers\StringHelper;
 use craft\fields\Matrix;
+use craft\models\EntryType;
 use craft\models\FieldGroup;
 use craft\models\FieldLayout;
 use craft\models\FieldLayoutTab;
 
 use yii\base\Component;
+
+use Exception;
 
 use benf\neo\Field as NeoField;
 use benf\neo\elements\Block;
@@ -119,55 +123,36 @@ class Service extends Component
 
     public function processCloneMatrix(FieldInterface $originField): array
     {
-        $blockTypes = [];
+        $entryTypes = [];
 
-        foreach ($originField->blockTypes as $i => $blockType) {
-            $fields = [];
-            $blockKey = 'new' . ($i + 1);
+        foreach ($originField->entryTypes as $i => $blockType) {
+            $entryType = new EntryType([
+                'name' => $blockType->name . ' ' . StringHelper::randomString(6),
+                'handle' => StringHelper::appendRandomString($blockType->handle, 6),
+            ]);
 
-            foreach ($blockType->getCustomFields() as $j => $blockField) {
-                $fieldKey = 'new' . ($j + 1);
-                $width = 100;
+            // Clone the field layout
+            $fieldLayoutConfig = $blockType->getFieldLayout()->getConfig()['tabs'] ?? [];
 
-                $fieldLayout = $blockType->getFieldLayout();
-                $fieldLayoutElements = $fieldLayout->getTabs()[0]->elements ?? [];
+            foreach ($fieldLayoutConfig as $tabKey => $tab) {
+                $fieldLayoutConfig[$tabKey]['uid'] = StringHelper::UUID();
 
-                if ($fieldLayoutElements) {
-                    $fieldLayoutElement = ArrayHelper::firstWhere($fieldLayoutElements, 'field.uid', $blockField->uid);
-                    $width = (int)($fieldLayoutElement->width ?? 0) ?: 100;
-                }
-
-                if ($blockField::class == 'verbb\supertable\fields\SuperTableField') {
-                    $blockField->contentTable = $blockField->contentTable ?? '';
-                }
-
-                $fields[$fieldKey] = [
-                    'type' => $blockField::class,
-                    'name' => $blockField['name'],
-                    'handle' => $blockField['handle'],
-                    'instructions' => $blockField['instructions'],
-                    'required' => (bool)$blockField['required'],
-                    'searchable' => (bool)$blockField['searchable'],
-                    'translationMethod' => $blockField['translationMethod'],
-                    'translationKeyFormat' => $blockField['translationKeyFormat'],
-                    'typesettings' => Json::decode(Json::encode($blockField['settings'])),
-                    'width' => $width,
-                ];
-
-                if ($blockField::class == 'verbb\supertable\fields\SuperTableField') {
-                    $fields['new' . ($j + 1)]['typesettings']['blockTypes'] = $this->processCloneSuperTable($blockField);
+                foreach (($tab['elements'] ?? []) as $layoutElementKey => $layoutElement) {
+                    $fieldLayoutConfig[$tabKey]['elements'][$layoutElementKey]['uid'] = StringHelper::UUID();
                 }
             }
 
-            $blockTypes[$blockKey] = [
-                'name' => $blockType->name,
-                'handle' => $blockType->handle,
-                'sortOrder' => $blockType->sortOrder,
-                'fields' => $fields,
-            ];
+            $fieldLayout = FieldLayout::createFromConfig(['tabs' => $fieldLayoutConfig]);
+            $entryType->setFieldLayout($fieldLayout);
+
+            if (Craft::$app->getEntries()->saveEntryType($entryType)) {
+                $entryTypes[] = $entryType->id;
+            } else {
+                throw new Exception(Json::encode($entryType->getErrors()));
+            }
         }
 
-        return $blockTypes;
+        return $entryTypes;
     }
 
     public function processCloneNeo(FieldInterface $originField): array
@@ -234,9 +219,9 @@ class Service extends Component
 
     public function processCloneSuperTable(FieldInterface $originField): array
     {
-        $blockTypes = [];
+        $entryTypes = [];
 
-        foreach ($originField->blockTypes as $i => $blockType) {
+        foreach ($originField->entryTypes as $i => $blockType) {
             $fields = [];
 
             foreach ($blockType->getCustomFields() as $j => $blockField) {
@@ -257,16 +242,16 @@ class Service extends Component
                 ];
 
                 if ($blockField::class == Matrix::class) {
-                    $fields['new' . $j]['typesettings']['blockTypes'] = $this->processCloneMatrix($blockField);
+                    $fields['new' . $j]['typesettings']['entryTypes'] = $this->processCloneMatrix($blockField);
                 }
             }
 
-            $blockTypes['new' . $i] = [
+            $entryTypes['new' . $i] = [
                 'fields' => $fields,
             ];
         }
 
-        return $blockTypes;
+        return $entryTypes;
     }
 
     public function createFieldLayoutFromConfig(array $config): FieldLayout
