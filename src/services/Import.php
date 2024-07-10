@@ -6,6 +6,8 @@ use verbb\fieldmanager\FieldManager;
 use Craft;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Json;
+use craft\models\EntryType;
+use craft\models\FieldLayout;
 
 use yii\base\Component;
 
@@ -36,37 +38,35 @@ class Import extends Component
 
                 // Handle Matrix
                 if ($data[$key]['type'] === 'craft\fields\Matrix') {
-                    $blockTypes = $field['settings']['blockTypes'] ?? [];
+                    $entryTypes = $field['settings']['entryTypes'] ?? [];
 
-                    foreach ($blockTypes as $blockTypeKey => $blockType) {
-                        $blockTypeImport = ArrayHelper::remove($blockType, 'import');
+                    foreach ($entryTypes as $entryTypeKey => $entryType) {
+                        $entryTypeImport = ArrayHelper::remove($entryType, 'import');
 
                         // Remove the whole block if not importing
-                        if ($blockTypeImport === 'noimport') {
-                            unset($fieldsToImport[$key]['settings']['blockTypes'][$blockTypeKey]);
+                        if ($entryTypeImport === 'noimport') {
+                            unset($fieldsToImport[$key]['settings']['entryTypes'][$entryTypeKey]);
 
                             continue;
                         }
 
-                        // Update name and handles for blocktype
-                        $fieldsToImport[$key]['settings']['blockTypes'][$blockTypeKey]['name'] = $blockType['name'];
-                        $fieldsToImport[$key]['settings']['blockTypes'][$blockTypeKey]['handle'] = $blockType['handle'];
+                        // Create and save the entry types first. Matrix doesn't do this in one go anymore
+                        $newEntryType = new EntryType([
+                            'name' => $entryType['name'],
+                            'handle' => $entryType['handle'],
+                        ]);
 
-                        $blockTypeFields = $blockType['fields'] ?? [];
+                        $fieldLayoutConfig = $fieldsToImport[$key]['settings']['entryTypes'][$entryTypeKey]['fieldLayout'] ?? [];
 
-                        foreach ($blockTypeFields as $blockTypeFieldKey => $blockTypeField) {
-                            $blockTypeFieldImport = ArrayHelper::remove($blockTypeField, 'import');
+                        $fieldLayout = FieldLayout::createFromConfig($fieldLayoutConfig);
+                        $newEntryType->setFieldLayout($fieldLayout);
 
-                            // Remove the whole field if not importing
-                            if ($blockTypeFieldImport === 'noimport') {
-                                unset($fieldsToImport[$key]['settings']['blockTypes'][$blockTypeKey]['fields'][$blockTypeFieldKey]);
+                        if (Craft::$app->getEntries()->saveEntryType($newEntryType)) {
+                            $fieldsToImport[$key]['settings']['entryTypes'][$entryTypeKey] = $newEntryType;
+                        } else {
+                            unset($fieldsToImport[$key]['settings']['entryTypes'][$entryTypeKey]);
 
-                                continue;
-                            }
-
-                            // Update name and handles for blocktype
-                            $fieldsToImport[$key]['settings']['blockTypes'][$blockTypeKey]['fields'][$blockTypeFieldKey]['name'] = $blockTypeField['name'];
-                            $fieldsToImport[$key]['settings']['blockTypes'][$blockTypeKey]['fields'][$blockTypeFieldKey]['handle'] = $blockTypeField['handle'];
+                            continue;
                         }
                     }
                 }
@@ -183,7 +183,17 @@ class Import extends Component
                     $fieldErrors = $field->getErrors();
 
                     // Handle Matrix/Super Table errors
-                    if ($fieldInfo['type'] == 'craft\fields\Matrix' || $fieldInfo['type'] == 'verbb\supertable\fields\SuperTableField') {
+                    if ($fieldInfo['type'] == 'craft\fields\Matrix') {
+                        $errors[$fieldInfo['handle']] = $fieldErrors;
+
+                        foreach ($field->getEntryTypes() as $entryType) {
+                            foreach ($entryType->getCustomFields() as $entryTypeField) {
+                                if ($entryTypeField->hasErrors()) {
+                                    $errors[$fieldInfo['handle']][$entryTypeField->handle] = $entryTypeField->getErrors();
+                                }
+                            }
+                        }
+                    } else if ($fieldInfo['type'] == 'verbb\supertable\fields\SuperTableField') {
                         foreach ($field->getBlockTypes() as $blockType) {
                             foreach ($blockType->getCustomFields() as $blockTypeField) {
                                 if ($blockTypeField->hasErrors()) {

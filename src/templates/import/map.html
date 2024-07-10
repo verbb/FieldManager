@@ -147,24 +147,24 @@
         { label: 'Include' | t('field-manager'), value: 'include' },
     ] %}
 
-    {% for blockTypeId, blockType in field.settings.blockTypes %}
-        {% set blockIndex = loop.index %}
+    {% for entryTypeId, entryType in field.settings.entryTypes %}
+        {% set entryIndex = loop.index0 %}
 
-        <tr data-row-id="{{ index }}" data-blocktype-id="{{ blockTypeId }}" class="row-blocktype">
+        <tr data-row-id="{{ index }}" data-blocktype-id="{{ entryTypeId }}" class="row-blocktype">
             <td class="textarea icon-arrow">
                 {{ forms.textField({
                     id: 'name',
-                    name: 'settings[blockTypes][new' ~ blockIndex ~ '][name]',
-                    value: blockType.name,
+                    name: 'settings[entryTypes][' ~ entryIndex ~ '][name]',
+                    value: entryType.name,
                 }) }}
             </td>
 
             <td class="textarea">
                 {{ forms.textField({
                     id: 'handle',
-                    name: 'settings[blockTypes][new' ~ blockIndex ~ '][handle]',
+                    name: 'settings[entryTypes][' ~ entryIndex ~ '][handle]',
                     class: 'code',
-                    value: blockType.handle,
+                    value: entryType.handle,
                 }) }}
             </td>
 
@@ -174,17 +174,23 @@
                 {{ forms.selectField({
                     id: 'import',
                     class: 'importSelect importSelectNested select-blocktype',
-                    name: 'settings[blockTypes][new' ~ blockIndex ~ '][import]',
+                    name: 'settings[entryTypes][' ~ entryIndex ~ '][import]',
                     options: options,
                 }) }}
             </td>
         </tr>
 
-        {% for blockTypeField in blockType.fields %}
-            {% namespace 'settings[blockTypes][new' ~ blockIndex ~ '][fields][new' ~ loop.index ~ ']' %}
-                {{ fieldManagerMacros.nestedField(blockTypeField, index, blockTypeId) }}
-            {% endnamespace %}
-        {% endfor %}
+        {% if entryType.fieldLayout is not null %}
+            {% set fieldLayout = craft.fieldManager.createFieldLayoutFromConfig(entryType.fieldLayout) %}
+
+            {% for entryTypeTabIndex, entryTypeFieldTab in fieldLayout.getTabs() %}
+                {% for fieldLayoutElementIndex, fieldLayoutElement in entryTypeFieldTab.elements %}
+                    {% namespace 'settings[entryTypes][' ~ entryIndex ~ '][fieldLayout][' ~ entryTypeTabIndex ~ '][' ~ fieldLayoutElementIndex ~ ']' %}
+                        {{ fieldManagerMacros.nestedFieldLayoutElement(fieldLayoutElement, index, entryTypeId, true) }}
+                    {% endnamespace %}
+                {% endfor %}
+            {% endfor %}
+        {% endif %}
     {% endfor %}
 {% endmacro %}
 

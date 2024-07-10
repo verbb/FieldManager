@@ -7,6 +7,7 @@ use Craft;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Json;
 use craft\fields\Matrix;
+use craft\fieldlayoutelements\CustomField;
 
 use yii\base\Component;
 
@@ -79,51 +80,14 @@ class Export extends Component
     {
         $fieldSettings = $field->settings;
 
-        $blockTypes = $field->getEntryTypes();
+        $entryTypes = $field->getEntryTypes();
 
-        $blockCount = 1;
-        foreach ($blockTypes as $blockType) {
-            $fieldSettings['blockTypes']['new' . $blockCount] = [
-                'name' => $blockType->name,
-                'handle' => $blockType->handle,
-                'fields' => [],
+        foreach ($entryTypes as $entryTypeKey => $entryType) {
+            $fieldSettings['entryTypes'][$entryTypeKey] = [
+                'name' => $entryType->name,
+                'handle' => $entryType->handle,
+                'fieldLayout' => $entryType->fieldLayout->getConfig(),
             ];
-
-            $fieldCount = 1;
-            foreach ($blockType->getCustomFields() as $blockField) {
-                // Case for nested Super Table
-                if ($blockField::class == 'verbb\supertable\fields\SuperTableField') {
-                    $settings = $this->processSuperTable($blockField);
-                } else {
-                    $settings = $blockField->settings;
-                }
-
-                $width = 100;
-                $fieldLayout = $blockType->getFieldLayout();
-                $fieldLayoutElements = $fieldLayout->getTabs()[0]->elements ?? [];
-
-                if ($fieldLayoutElements) {
-                    $fieldLayoutElement = ArrayHelper::firstWhere($fieldLayoutElements, 'field.uid', $blockField->uid);
-                    $width = (int)($fieldLayoutElement->width ?? 0) ?: 100;
-                }
-
-                $fieldSettings['blockTypes']['new' . $blockCount]['fields']['new' . $fieldCount] = [
-                    'name' => $blockField->name,
-                    'handle' => $blockField->handle,
-                    'required' => $blockField->required,
-                    'instructions' => $blockField->instructions,
-                    'searchable' => $blockField->searchable,
-                    'translationMethod' => $blockField->translationMethod,
-                    'translationKeyFormat' => $blockField->translationKeyFormat,
-                    'type' => $blockField::class,
-                    'typesettings' => $settings,
-                    'width' => $width,
-                ];
-
-                $fieldCount++;
-            }
-
-            $blockCount++;
         }
 
         return $fieldSettings;
