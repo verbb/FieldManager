@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.0.2 - 2024-07-21
+
+### Added
+- Add support for CKEditor and separate editor configs.
+
+### Changed
+- Update English translations.
+
+### Fixed
+- Fix an error importing and exporting Matrix fields.
+- Fix an error exporting Neo fields.
+
 ## 4.0.1 - 2024-06-22
 
 ### Changed
