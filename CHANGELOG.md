@@ -15,6 +15,14 @@
 - Now requires PHP `8.2.0+`.
 - Now requires Craft `5.0.0+`.
 
+## 3.0.9 - 2024-07-21
+
+### Added
+- Add support for CKEditor and separate editor configs.
+
+### Changed
+- Update English translations.
+
 ## 3.0.8 - 2023-10-25
 
 ### Fixed
