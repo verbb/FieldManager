@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.9 - 2024-07-21
+
+### Added
+- Add support for CKEditor and separate editor configs.
+
+### Changed
+- Update English translations.
+
 ## 3.0.8 - 2023-10-25
 
 ### Fixed
