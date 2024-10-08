@@ -64,6 +64,19 @@ class Import extends Component
 
                         $fieldLayoutConfig = $fieldsToImport[$key]['settings']['entryTypes'][$entryTypeKey]['fieldLayout'] ?? [];
 
+                        if (isset($fieldLayoutConfig['tabs']) && is_array($fieldLayoutConfig['tabs'])) {
+                            foreach ($fieldLayoutConfig['tabs'] as $tabKey => $tab) {
+                                $fieldLayoutConfig['tabs'][$tabKey]['uid'] = null;
+
+                                if (isset($tab['elements']) && is_array($tab['elements'])) {
+                                    foreach ($tab['elements'] as $elementKey => $fieldElement) {
+                                        $fieldLayoutConfig['tabs'][$tabKey]['elements'][$elementKey]['uid'] = null;
+                                        $fieldLayoutConfig['tabs'][$tabKey]['elements'][$elementKey]['dateAdded'] = null;
+                                    }
+                                }
+                            }
+                        }
+
                         $fieldLayout = FieldLayout::createFromConfig($fieldLayoutConfig);
                         $newEntryType->setFieldLayout($fieldLayout);
 
