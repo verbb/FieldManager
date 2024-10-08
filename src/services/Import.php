@@ -6,6 +6,7 @@ use verbb\fieldmanager\FieldManager;
 use Craft;
 use craft\helpers\ArrayHelper;
 use craft\helpers\Json;
+use craft\helpers\StringHelper;
 use craft\models\EntryType;
 use craft\models\FieldLayout;
 
@@ -55,6 +56,11 @@ class Import extends Component
                             'name' => $entryType['name'],
                             'handle' => $entryType['handle'],
                         ]);
+
+                        // Generate a new handle if already taken
+                        if ($currentEntryType = Craft::$app->getEntries()->getEntryTypeByHandle($newEntryType->handle)) {
+                            $newEntryType->handle .= StringHelper::randomString(10);
+                        }
 
                         $fieldLayoutConfig = $fieldsToImport[$key]['settings']['entryTypes'][$entryTypeKey]['fieldLayout'] ?? [];
 
