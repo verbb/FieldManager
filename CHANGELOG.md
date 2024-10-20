@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.0.3 - 2024-10-20
+
+### Changed
+- Improve Matrix field importing when an existing entry type was already found.
+
+### Fixed
+- Fix an issue when importing Matrix fields.
+
 ## 4.0.2 - 2024-07-21
 
 ### Added
